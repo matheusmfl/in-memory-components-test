@@ -6,8 +6,11 @@ interface pageProps {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default async function ProjectByFolderSlug({ params }: pageProps) {
-  console.log(params)
+
+
+
   return (
     <div className="w-full">
       <h1>Simulador de Upload de Vídeos</h1>

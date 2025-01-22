@@ -1,19 +1,22 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
-import { Button } from "@/components/ui/button"
+import React, { useState, useMemo } from 'react'
+
 
 import { InMemoryApiVideo } from '@/fakeApi/videos/fakeApiVideo'
 import { Video } from '@/fakeApi/schema/video'
 
 import { FileList } from './FileList'
+import { ProgressBar } from './ProgressBar'
+import { UploadDropzone } from './Dropzone'
 
 
 const api = new InMemoryApiVideo()
 
 export default function VideoUploader() {
   const [videos, setVideos] = useState<Video[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [stage, setStage] = useState<boolean>(false)
+
   const [uploadProgress, setUploadProgress] = useState<{ videoId: string; progress: number }[]>([]);
 
   const generateThumbnail = (file: File): Promise<string> => {
@@ -34,18 +37,20 @@ export default function VideoUploader() {
     })
   }
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        const video = api.addVideo(file)
-        const thumbnail = await generateThumbnail(file)
-        setVideos(prev => [...prev, { ...video, thumbnail }])
-        simulateUpload(file, video.id)
-      }
-    }
-  }
+  const handleChangeVideoName = ({ name, videoId }: { name: string; videoId: string }) => {
+    setVideos((prevVideos) =>
+      prevVideos.map((video) =>
+        video.id === videoId
+          ? { ...video, name }
+          : video
+      )
+    );
+  };
+
+  const handleDeleteVideo = (videoId: string) => {
+    setVideos((prevVideos) => prevVideos.filter((video) => video.id !== videoId));
+  };
+
 
   const simulateUpload = async (file: File, videoId: string) => {
     const chunkSize = 1024 * 1024 // 1MB chunks
@@ -70,7 +75,6 @@ export default function VideoUploader() {
       setUploadProgress((prev) => {
         const index = prev.findIndex((p) => p.videoId === videoId);
         if (index !== -1) {
-          // Update existing entry
           const updated = [...prev];
           updated[index] = { ...updated[index], progress };
           return updated;
@@ -93,74 +97,52 @@ export default function VideoUploader() {
     }
   }
 
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+
+  const handleFilesAdded = async (files: File[]) => {
+    for (const file of files) {
+      const video = api.addVideo(file)
+      const thumbnail = await generateThumbnail(file)
+      setVideos(prev => [...prev, { ...video, thumbnail }])
+      simulateUpload(file, video.id)
+    }
+  }
+
+  const MemoizedProgressBar = React.memo(ProgressBar);
+
+  const videoProgress = useMemo(() => {
+    return videos.map((video) => ({
+      ...video,
+      progress: uploadProgress.find((p) => p.videoId === video.id)?.progress || 0,
+    }));
+  }, [videos, uploadProgress]);
 
   return (
-    <div className="p-4">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="video/*"
-        multiple
-        className="hidden"
-      />
-      <Button onClick={handleUploadClick} className="mb-4">Selecionar Vídeos</Button>
+    <>
+      <button onClick={() => setStage(false)}>step1</button>
+      <button onClick={() => setStage(true)}>step2</button>
 
-      <div className="space-y-4">
-        {videos.map((video) => (
-          // <div key={video.id} className="border p-4 rounded-lg">
-          //   <div className="flex items-center space-x-4">
-          //     {video.thumbnail && (
-          //       <img src={video.thumbnail} alt="Thumbnail" className="w-24 h-24 object-cover rounded" />
-          //     )}
-          //     <div className="flex-1">
-          //       <h3 className="font-semibold">{video.name}</h3>
-          //       <p className="text-sm text-gray-500">{Math.round(video.size / 1024 / 1024 * 100) / 100} MB</p>
-          //       <div className='w-[40px] h-[40px]'>
 
-          //         <CircularProgressbar
+      {stage ? (
+        <div className="p-4 flex flex-col gap-10">
 
-          //           value={uploadProgress.find((p) => p.videoId === video.id)?.progress || 0}
-          //           text={uploadProgress.find((p) => p.videoId === video.id)?.progress.toString() || '0'}
-          //           styles={{
-          //             root: { width: 40, flex: 1, },
-          //             path: {
-          //               stroke: '#7159c1',
-          //             },
-          //             trail: {
-          //               stroke: '#A9A9A9',
-          //             },
-          //             text: {
-          //               fill: '#000',
-          //               fontSize: '12px',
-          //               dominantBaseline: 'central',
-          //               textAnchor: 'middle',
-          //             },
-          //           }
 
-          //           }
-          //           strokeWidth={14}
-          //           className="mt-2"
-          //         />
-          //       </div>
-          //       <p className="text-sm mt-1">
-          //         {video.status === 'completed'
-          //           ? 'Upload completo'
-          //           : `${video.uploadedChunks} de ${video.chunks} chunks enviados`
-          //         }
+          <UploadDropzone onFilesAdded={handleFilesAdded} />
 
-          //         teste : {uploadProgress.find((p) => p.videoId === video.id)?.progress || 0}
-          //       </p>
-          //     </div>
-          //   </div>
-          // </div>
-          <FileList key={video.id} file={video} imageThumb={video.thumbnail ?? ''} progress={uploadProgress.find((p) => p.videoId === video.id)?.progress || 0} />
-        ))}
-      </div>
-    </div>
+          <div className="space-y-4">
+            {videos.map((video) => (
+
+              <FileList handleDelete={handleDeleteVideo} progress={videoProgress.find((CurrentVideo) => CurrentVideo.id === video.id)?.progress ?? 0} handleChangeVideoName={handleChangeVideoName} key={video.id} file={video} imageThumb={video.thumbnail ?? ''}  >
+                <MemoizedProgressBar progress={videoProgress.find((CurrentVideo) => CurrentVideo.id === video.id)?.progress ?? 0} />
+              </FileList>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div>Tabs metadata</div>
+      )}
+
+    </>
+
   )
 }
 
