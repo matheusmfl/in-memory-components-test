@@ -6,5 +6,6 @@ export interface ProjectCard {
     timeStamp?: string
     projectStatus: 'launched' | 'scheduled' | 'not_scheduled'
     members: { name: string; avatar: string }[]
-    image?: string | StaticImageData
+    image: string | StaticImageData | null
+    folderId: string | null
 }

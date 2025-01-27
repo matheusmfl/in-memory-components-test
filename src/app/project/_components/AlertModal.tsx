@@ -14,17 +14,17 @@ interface AlertModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
+  title: string
+  description: string
 }
 
-export function AlertModal({ isOpen, onClose, onConfirm }: AlertModalProps) {
+export function AlertModal({ isOpen, onClose, onConfirm, title, description }: AlertModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Are you sure you want to delete?</DialogTitle>
-          <DialogDescription>
-            This action cannot be undone. This will permanently delete the selected items.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
