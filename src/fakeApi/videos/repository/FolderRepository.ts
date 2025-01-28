@@ -5,4 +5,5 @@ export interface FolderRepository {
   deleteFolder(folderId: string): Promise<void>,
   createFolder(folderName: string): Promise<IFolder>
   deleteManyFolders(foldersId: string[]): Promise<void>
+   renameFolder(id: string, newTitle: string): Promise<IFolder>
 }

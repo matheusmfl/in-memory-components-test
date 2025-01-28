@@ -108,7 +108,7 @@ export class InMemoryApiProjectCard implements ProjectCardRepository, FolderRepo
 
 
   async createFolder(folderName: string): Promise<IFolder> {
-    await delay(500)
+    await delay(2000)
     const newFolder: IFolder = {
       createdAt: generateRandomTimestamp(),
       id: randomUUID(),
@@ -121,12 +121,20 @@ export class InMemoryApiProjectCard implements ProjectCardRepository, FolderRepo
     return newFolder
   }
 
-  async renameProjectCard(title: string): Promise<ProjectCard> {
+  async renameProjectCard(id: string, newTitle: string): Promise<ProjectCard> {
     await delay(500)
-    const project = this.items.find((card) => card.title === title)
+    const project = this.items.find((card) => card.id === id)
     if (!project) throw new Error("Project not found")
-    project.title = title
+    project.title = newTitle
     return project
+  }
+
+  async renameFolder(id: string, newTitle: string): Promise<IFolder> {
+    await delay(500)
+    const folder = this.folders.find((folder) => folder.id === id)
+    if (!folder) throw new Error("Folder not found")
+      folder.title = newTitle
+    return folder
   }
 
   async deleteMany({ ids }: { ids: string[] }): Promise<void> {
@@ -164,6 +172,7 @@ export class InMemoryApiProjectCard implements ProjectCardRepository, FolderRepo
   }
 
   async moveCardsToFolder({ folderId, projectsId }: { folderId: string, projectsId: string[] }): Promise<void> {
+    console.log('Entrou')
 
     await delay(500)
     this.items = this.items.map(item => {

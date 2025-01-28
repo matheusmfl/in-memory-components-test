@@ -19,6 +19,7 @@ import { InMemoryApiProjectCard } from "@/fakeApi/videos/FakeApiCards"
 import { FolderSkeleton } from "./_components/FolderSkeleton"
 import toast, { Toaster } from "react-hot-toast"
 import { EmptyState } from "./_components/EmptyCardState"
+import { RenameModal } from "./_components/RenameModal"
 
 
 const folderRepository = InMemoryApiProjectCard.getInstance()
@@ -39,6 +40,13 @@ export default function ProjectDashboard() {
     folders: [],
     projects: [],
   })
+
+  const [isRenameModalOpen, setIsRenameModalOpen] = React.useState(false)
+  const [itemToRename, setItemToRename] = React.useState<{
+    id: string
+    name: string
+    type: "project" | "folder"
+  } | null>(null)
 
   const fetchFolders = React.useCallback(async () => {
     setGetFoldersLoading(true)
@@ -61,6 +69,22 @@ export default function ProjectDashboard() {
 
   const handleFolderSelect = (folderId: string, isSelected: boolean) => {
     setSelectedFolders((prev) => (isSelected ? [...prev, folderId] : prev.filter((id) => id !== folderId)))
+  }
+
+  const handleRenameFolder = (id: string) => {
+    const folder = folders.find((f) => f.id === id)
+    if (folder) {
+      setItemToRename({ id, name: folder.title, type: "folder" })
+      setIsRenameModalOpen(true)
+    }
+  }
+
+  const handleRenameProject = (id: string) => {
+    const project = projects.find((p) => p.id === id)
+    if (project) {
+      setItemToRename({ id, name: project.title, type: "project" })
+      setIsRenameModalOpen(true)
+    }
   }
 
   const handleProjectSelect = (projectId: string) => {
@@ -109,10 +133,7 @@ export default function ProjectDashboard() {
     setIsCreatingProject(false)
   }
 
-  const handleRenameFolder = (id: string) => {
-    // Implement folder renaming logic
-    toast(`Renaming folder ${id}`)
-  }
+
 
   const handleDeleteFolder = async (id: string) => {
     try {
@@ -125,10 +146,7 @@ export default function ProjectDashboard() {
     }
   }
 
-  const handleRenameProject = (id: string) => {
-    // Implement project renaming logic
-    toast(`Renaming project ${id}`)
-  }
+
 
   const handleDeleteProject = async (id: string) => {
     try {
@@ -139,6 +157,27 @@ export default function ProjectDashboard() {
       console.error("Error deleting project:", error)
       toast.error("Error deleting project")
     }
+  }
+
+  const handleRenameConfirm = async (newName: string) => {
+    if (itemToRename) {
+      try {
+        if (itemToRename.type === "folder") {
+          await folderRepository.renameFolder(itemToRename.id, newName)
+          await fetchFolders()
+          toast.success("Folder renamed successfully")
+        } else {
+          await folderRepository.renameProjectCard(itemToRename.id, newName)
+          await fetchProjects()
+          toast.success("Project renamed successfully")
+        }
+      } catch (error) {
+        console.error(`Error renaming ${itemToRename.type}:`, error)
+        toast.error(`Error renaming ${itemToRename.type}`)
+      }
+    }
+    setIsRenameModalOpen(false)
+    setItemToRename(null)
   }
 
 
@@ -268,7 +307,7 @@ export default function ProjectDashboard() {
                   selectedItems={selectedProjects}
                   onRename={handleRenameProject}
                   onDelete={handleDeleteProject}
-                  onMoveToFolder={() => handleMoveProjectToFolder}
+                  onMoveToFolder={handleMoveProjectToFolder}
                   hasFolders={folders.length > 0}
                 />
               ))}
@@ -300,6 +339,17 @@ export default function ProjectDashboard() {
         onConfirm={handleDeleteConfirm}
         title={`Delete ${itemsToDelete.folders.length + itemsToDelete.projects.length} item(s)`}
         description="Are you sure you want to delete the selected items? This action cannot be undone."
+      />
+
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        onClose={() => {
+          setIsRenameModalOpen(false)
+          setItemToRename(null)
+        }}
+        onRename={handleRenameConfirm}
+        initialName={itemToRename?.name || ""}
+        type={itemToRename?.type || "project"}
       />
 
       <CreateFolderModal

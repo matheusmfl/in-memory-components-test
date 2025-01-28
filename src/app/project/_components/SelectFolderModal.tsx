@@ -19,6 +19,7 @@ export function SelectFolderModal({ isOpen, onClose, onSelect, folders }: Select
 
   const handleSelect = () => {
     if (selectedFolder) {
+      console.log(selectedFolder + " selected folder ")
       onSelect(selectedFolder)
       setSelectedFolder(null)
       onClose()
